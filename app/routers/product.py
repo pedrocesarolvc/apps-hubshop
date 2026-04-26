@@ -29,3 +29,15 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     crud_product.delete_product(db, product_id=product_id)
     return {"message": "Produto deletado com sucesso. Especificações também foram deletadas via CASCADE."}
+
+@router.post("/{product_id}/specs/", response_model=ProductSpecResponse)
+def create_product_spec(product_id: int, spec: ProductSpecBase, db: Session = Depends(get_db)):
+    product = crud_product.get_product(db, product_id=product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    
+    try:
+        return crud_product.create_product_spec(db, product_id=product_id, spec=spec)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Erro ao adicionar spec (Possível chave duplicada).")
