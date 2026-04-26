@@ -2,7 +2,7 @@
 # E-Commerce Backend - ShopHub API
 # executando app:
 # 1. Instalar as dependências: pip install fastapi uvicorn sqlalchemy pydantic
-# 2. servidor: uvicorn app.main:app --reload
+# 2. servidor: python -muvicorn app.main:app --reload
 # 3. SWAGGER: http://localhost:8000/docs
 # -----------------------------------------------------------------------------------
 
@@ -33,4 +33,4 @@ app.add_middleware(
 
 # Incluindo os roteadores modulares (endpoints)
 app.include_router(user.router)
-app.include_router(product.router)
+app.include_router(product.router)
