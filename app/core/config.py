@@ -1,0 +1,1 @@
+#guarda o jwt_secrets e outras configs
