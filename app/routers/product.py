@@ -2,13 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.banco import get_db
+from app.core.deps import get_current_user
 from app.schemas.product import ProductCreate, ProductResponse, ProductSpecBase, ProductSpecResponse
 from app.crud import product as crud_product
+from app.modelos.user import UserModel
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
 @router.post("/", response_model=ProductResponse)
-def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+def create_product(product: ProductCreate, db: Session = Depends(get_db), usuario_logado: UserModel = Depends(get_current_user)):
     return crud_product.create_product(db=db, product=product)
 
 @router.get("/", response_model=List[ProductResponse])
