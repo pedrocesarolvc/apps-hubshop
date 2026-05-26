@@ -4,234 +4,252 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShopHub - Painel de Administração</title>
-    <!-- Tailwind CSS para estilização rápida e moderna -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Vue.js para reatividade e componentização no frontend -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
-    <div id="app" class="min-h-screen flex flex-col md:flex-row">
+    <div id="app" class="min-h-screen">
+        
+        <!-- Notificações Toast -->
+        <div v-if="notification" class="fixed top-5 right-5 bg-white border-l-4 border-indigo-500 shadow-lg p-4 rounded-md flex items-center gap-3 transition-all z-50">
+            <i data-lucide="info" class="text-indigo-500"></i>
+            <p class="font-medium text-gray-700">{{ notification }}</p>
+        </div>
 
-        <!-- Navegação Lateral -->
-        <aside class="w-full md:w-64 bg-indigo-900 text-white flex-shrink-0">
-            <div class="p-6 border-b border-indigo-800">
-                <h1 class="text-2xl font-bold flex items-center gap-2">
-                    <i data-lucide="shopping-cart"></i> ShopHub Admin
-                </h1>
-            </div>
-            <nav class="p-4 space-y-2">
-                <button @click="currentTab = 'products'" :class="{'bg-indigo-800': currentTab === 'products'}" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-indigo-700 transition-colors">
-                    <i data-lucide="package"></i> Produtos
-                </button>
-                <button @click="currentTab = 'users'" :class="{'bg-indigo-800': currentTab === 'users'}" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-indigo-700 transition-colors">
-                    <i data-lucide="users"></i> Usuários
-                </button>
-            </nav>
-        </aside>
-
-        <!-- Área de Conteúdo Principal -->
-        <main class="flex-1 p-6 md:p-10">
-
-            <!-- Notificações Toast -->
-            <div v-if="notification" class="fixed top-5 right-5 bg-white border-l-4 border-indigo-500 shadow-lg p-4 rounded-md flex items-center gap-3 transition-all z-50">
-                <i data-lucide="info" class="text-indigo-500"></i>
-                <p class="font-medium text-gray-700">{{ notification }}</p>
-            </div>
-
-            <!-- CABEÇALHO -->
-            <header class="flex justify-between items-center mb-8">
-                <div>
-                    <h2 class="text-3xl font-bold text-gray-900 capitalize">{{ currentTab === 'products' ? 'Catálogo de Produtos' : 'Gestão de Usuários' }}</h2>
-                    <p class="text-gray-500 mt-1">Gerencie os dados diretamente da API (FastAPI + SQLite)</p>
+        <!-- TELA DE LOGIN (Mostrada apenas se não logado) -->
+        <div v-if="!isLoggedIn" class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+            <div class="bg-white w-full max-w-4xl rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+                <!-- Seção Esquerda (Imagem/Branding) -->
+                <div class="w-full md:w-1/2 bg-indigo-900 p-12 flex flex-col items-center justify-center text-white">
+                    <i data-lucide="shopping-cart" class="w-24 h-24 mb-6 text-indigo-300"></i>
+                    <h1 class="text-4xl font-bold mb-4">ShopHub</h1>
+                    <p class="text-center text-indigo-200">Painel de Controle Administrativo</p>
                 </div>
-                <button @click="openModal" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">
-                    <i data-lucide="plus" class="w-5 h-5"></i>
-                    Adicionar {{ currentTab === 'products' ? 'Produto' : 'Usuário' }}
-                </button>
-            </header>
-
-            <!-- ABA: PRODUTOS -->
-            <div v-if="currentTab === 'products'" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-
-                <!-- Barra de Pesquisa e Filtros -->
-                <div class="p-4 flex flex-col md:flex-row gap-4 border-b border-gray-100 bg-gray-50/50">
-                    <div class="relative flex-1">
-                        <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"></i>
-                        <input v-model="searchQuery" type="text" placeholder="Buscar produtos por nome ou descrição..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
-                    <div class="w-full md:w-64 relative">
-                        <select v-model="selectedCategory" class="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none appearance-none bg-white">
-                            <option v-for="cat in uniqueCategories" :key="cat" :value="cat">{{ cat }}</option>
-                        </select>
-                        <i data-lucide="filter" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none"></i>
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 border-b border-gray-100">
-                                <th class="p-4 font-semibold text-gray-600">ID</th>
-                                <th class="p-4 font-semibold text-gray-600">Produto</th>
-                                <th class="p-4 font-semibold text-gray-600">Descrição</th>
-                                <th class="p-4 font-semibold text-gray-600">Categoria</th>
-                                <th class="p-4 font-semibold text-gray-600">Preço</th>
-                                <th class="p-4 font-semibold text-gray-600">Estoque</th>
-                                <th class="p-4 font-semibold text-gray-600 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-if="filteredProducts.length === 0" class="border-b border-gray-50">
-                                <td colspan="7" class="p-8 text-center text-gray-400">Nenhum produto encontrado.</td>
-                            </tr>
-                            <tr v-for="product in filteredProducts" :key="product.product_id" class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                                <td class="p-4 text-gray-500">#{{ product.product_id }}</td>
-                                <td class="p-4 font-medium text-gray-900">{{ product.name }}</td>
-                                <td class="p-4 text-gray-500 text-sm max-w-xs truncate" :title="product.description">
-                                    {{ product.description || 'Sem descrição' }}
-                                </td>
-                                <td class="p-4">
-                                    <span class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full text-xs font-semibold">
-                                        {{ product.category }}
-                                    </span>
-                                </td>
-                                <td class="p-4 font-medium text-green-600">R$ {{ product.price.toFixed(2) }}</td>
-                                <td class="p-4">{{ product.stock_quantity }} unid.</td>
-                                <td class="p-4 flex justify-center gap-2">
-                                    <button @click="deleteProduct(product.product_id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">
-                                        <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ABA: USUÁRIOS -->
-            <div v-if="currentTab === 'users'" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 border-b border-gray-100">
-                                <th class="p-4 font-semibold text-gray-600">ID</th>
-                                <th class="p-4 font-semibold text-gray-600">Nome Completo</th>
-                                <th class="p-4 font-semibold text-gray-600">Email</th>
-                                <th class="p-4 font-semibold text-gray-600">Telefone</th>
-                                <th class="p-4 font-semibold text-gray-600">Tipo</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-if="users.length === 0" class="border-b border-gray-50">
-                                <td colspan="5" class="p-8 text-center text-gray-400">Nenhum usuário cadastrado.</td>
-                            </tr>
-                            <tr v-for="user in users" :key="user.user_id" class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                                <td class="p-4 text-gray-500">#{{ user.user_id }}</td>
-                                <td class="p-4 font-medium text-gray-900">{{ user.full_name }}</td>
-                                <td class="p-4 text-gray-600">{{ user.email }}</td>
-                                <td class="p-4 text-gray-600">{{ user.phone }}</td>
-                                <td class="p-4 capitalize">
-                                    <span :class="user.account_type === 'loja' ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700'" class="px-2.5 py-1 rounded-full text-xs font-semibold">
-                                        {{ user.account_type }}
-                                    </span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- MODAL GERAL -->
-            <div v-if="isModalOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
-                <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-                        <h3 class="text-xl font-bold text-gray-900">
-                            {{ currentTab === 'products' ? 'Novo Produto' : 'Novo Usuário' }}
-                        </h3>
-                        <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
-                            <i data-lucide="x"></i>
+                
+                <!-- Seção Direita (Formulário) -->
+                <div class="w-full md:w-1/2 p-8 md:p-12">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-8">Acesso Restrito</h2>
+                    
+                    <form @submit.prevent="login" class="space-y-6">
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email do Administrador</label>
+                            <input type="email" id="email" v-model="loginForm.email" placeholder="admin@shophub.com" required 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                        </div>
+                        
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                            <input type="password" id="password" v-model="loginForm.password" placeholder="Digite sua senha:" required 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                        </div>
+                        
+                        <div class="flex justify-between items-center text-sm">
+                            <a href="#" class="text-indigo-600 hover:text-indigo-800 font-medium transition-colors">Esqueceu sua senha?</a>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow-md transition-colors flex justify-center items-center gap-2">
+                            Entrar <i data-lucide="arrow-right" class="w-4 h-4"></i>
                         </button>
-                    </div>
-
-                    <div class="p-6">
-                        <!-- FORMULÁRIO: Produto -->
-                        <form v-if="currentTab === 'products'" @submit.prevent="submitProduct" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Produto *</label>
-                                <input v-model="formProduct.name" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Preço (R$) *</label>
-                                    <input v-model.number="formProduct.price" type="number" step="0.01" min="0" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Estoque *</label>
-                                    <input v-model.number="formProduct.stock_quantity" type="number" min="0" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Categoria *</label>
-                                <input v-model="formProduct.category" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                                <textarea v-model="formProduct.description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
-                            </div>
-                            <div class="pt-4 flex justify-end gap-3">
-                                <button type="button" @click="closeModal" class="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Cancelar</button>
-                                <button type="submit" class="px-5 py-2.5 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium shadow-sm transition-colors">Salvar Produto</button>
-                            </div>
-                        </form>
-
-                        <!-- FORMULÁRIO: Usuário -->
-                        <form v-if="currentTab === 'users'" @submit.prevent="submitUser" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
-                                <input v-model="formUser.full_name" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                                <input v-model="formUser.email" type="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Senha *</label>
-                                    <input v-model="formUser.password" type="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Telefone *</label>
-                                    <input v-model="formUser.phone" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Conta</label>
-                                <select v-model="formUser.account_type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                                    <option value="cliente">Cliente</option>
-                                    <option value="loja">Loja Parceira</option>
-                                </select>
-                            </div>
-                            <div class="pt-4 flex justify-end gap-3">
-                                <button type="button" @click="closeModal" class="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Cancelar</button>
-                                <button type="submit" class="px-5 py-2.5 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium shadow-sm transition-colors">Salvar Usuário</button>
-                            </div>
-                        </form>
+                    </form>
+                    
+                    <div class="mt-8 text-center text-sm text-gray-500">
+                        <p>&copy; GrupoEsuda / ShopHub Admin</p>
                     </div>
                 </div>
             </div>
+        </div>
 
-        </main>
+        <!-- DASHBOARD (Mostrado apenas se logado) -->
+        <div v-else class="min-h-screen flex flex-col md:flex-row">
+            <!-- Navegação Lateral -->
+            <aside class="w-full md:w-64 bg-indigo-900 text-white flex-shrink-0 flex flex-col">
+                <div class="p-6 border-b border-indigo-800">
+                    <h1 class="text-2xl font-bold flex items-center gap-2">
+                        <i data-lucide="shopping-cart"></i> ShopHub Admin
+                    </h1>
+                </div>
+                <nav class="p-4 space-y-2 flex-grow">
+                    <button @click="currentTab = 'products'" :class="{'bg-indigo-800': currentTab === 'products'}" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-indigo-700 transition-colors">
+                        <i data-lucide="package"></i> Produtos
+                    </button>
+                    <button @click="currentTab = 'users'" :class="{'bg-indigo-800': currentTab === 'users'}" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-indigo-700 transition-colors">
+                        <i data-lucide="users"></i> Usuários
+                    </button>
+                </nav>
+                <div class="p-4 border-t border-indigo-800">
+                    <button @click="logout" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-600 text-red-200 hover:text-white transition-colors">
+                        <i data-lucide="log-out"></i> Sair
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Área de Conteúdo Principal -->
+            <main class="flex-1 p-6 md:p-10">
+                <!-- CABEÇALHO -->
+                <header class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-900 capitalize">{{ currentTab === 'products' ? 'Catálogo de Produtos' : 'Gestão de Usuários' }}</h2>
+                        <p class="text-gray-500 mt-1">Gerencie os dados como administrador</p>
+                    </div>
+                    <button @click="openModal" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                        Adicionar {{ currentTab === 'products' ? 'Produto' : 'Usuário' }}
+                    </button>
+                </header>
+
+                <!-- ABA: PRODUTOS -->
+                <div v-if="currentTab === 'products'" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-4 flex flex-col md:flex-row gap-4 border-b border-gray-100 bg-gray-50/50">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"></i>
+                            <input v-model="searchQuery" type="text" placeholder="Buscar produtos..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div class="w-full md:w-64 relative">
+                            <select v-model="selectedCategory" class="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none appearance-none bg-white">
+                                <option v-for="cat in uniqueCategories" :key="cat" :value="cat">{{ cat }}</option>
+                            </select>
+                            <i data-lucide="filter" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-100">
+                                    <th class="p-4 font-semibold text-gray-600">ID</th>
+                                    <th class="p-4 font-semibold text-gray-600">Produto</th>
+                                    <th class="p-4 font-semibold text-gray-600">Categoria</th>
+                                    <th class="p-4 font-semibold text-gray-600">Preço</th>
+                                    <th class="p-4 font-semibold text-gray-600">Estoque</th>
+                                    <th class="p-4 font-semibold text-gray-600 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-if="filteredProducts.length === 0" class="border-b border-gray-50">
+                                    <td colspan="6" class="p-8 text-center text-gray-400">Nenhum produto encontrado.</td>
+                                </tr>
+                                <tr v-for="product in filteredProducts" :key="product.product_id" class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                    <td class="p-4 text-gray-500">#{{ product.product_id }}</td>
+                                    <td class="p-4 font-medium text-gray-900">{{ product.name }}</td>
+                                    <td class="p-4">
+                                        <span class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full text-xs font-semibold">
+                                            {{ product.category }}
+                                        </span>
+                                    </td>
+                                    <td class="p-4 font-medium text-green-600">R$ {{ product.price.toFixed(2) }}</td>
+                                    <td class="p-4">{{ product.stock_quantity }} unid.</td>
+                                    <td class="p-4 flex justify-center gap-2">
+                                        <button @click="deleteProduct(product.product_id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">
+                                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ABA: USUÁRIOS -->
+                <div v-if="currentTab === 'users'" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-100">
+                                    <th class="p-4 font-semibold text-gray-600">ID</th>
+                                    <th class="p-4 font-semibold text-gray-600">Nome Completo</th>
+                                    <th class="p-4 font-semibold text-gray-600">Email</th>
+                                    <th class="p-4 font-semibold text-gray-600">Telefone</th>
+                                    <th class="p-4 font-semibold text-gray-600">Tipo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-if="users.length === 0" class="border-b border-gray-50">
+                                    <td colspan="5" class="p-8 text-center text-gray-400">Nenhum usuário cadastrado.</td>
+                                </tr>
+                                <tr v-for="user in users" :key="user.user_id" class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                    <td class="p-4 text-gray-500">#{{ user.user_id }}</td>
+                                    <td class="p-4 font-medium text-gray-900">{{ user.full_name }}</td>
+                                    <td class="p-4 text-gray-600">{{ user.email }}</td>
+                                    <td class="p-4 text-gray-600">{{ user.phone }}</td>
+                                    <td class="p-4 capitalize">
+                                        <span :class="user.account_type === 'loja' ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700'" class="px-2.5 py-1 rounded-full text-xs font-semibold">
+                                            {{ user.account_type }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- MODAL GERAL -->
+                <div v-if="isModalOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
+                    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+                        <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                            <h3 class="text-xl font-bold text-gray-900">
+                                {{ currentTab === 'products' ? 'Novo Produto' : 'Novo Usuário' }}
+                            </h3>
+                            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                                <i data-lucide="x"></i>
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <!-- FORMULÁRIO PRODUTO -->
+                            <form v-if="currentTab === 'products'" @submit.prevent="submitProduct" class="space-y-4">
+                                <div><label class="block text-sm font-medium text-gray-700 mb-1">Nome do Produto *</label>
+                                <input v-model="formProduct.name" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Preço (R$) *</label>
+                                    <input v-model.number="formProduct.price" type="number" step="0.01" min="0" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Estoque *</label>
+                                    <input v-model.number="formProduct.stock_quantity" type="number" min="0" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                                </div>
+                                <div><label class="block text-sm font-medium text-gray-700 mb-1">Categoria *</label>
+                                <input v-model="formProduct.category" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                                <div class="pt-4 flex justify-end gap-3">
+                                    <button type="button" @click="closeModal" class="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Cancelar</button>
+                                    <button type="submit" class="px-5 py-2.5 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium shadow-sm transition-colors">Salvar</button>
+                                </div>
+                            </form>
+
+                            <!-- FORMULÁRIO USUÁRIO -->
+                            <form v-if="currentTab === 'users'" @submit.prevent="submitUser" class="space-y-4">
+                                <div><label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
+                                <input v-model="formUser.full_name" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                                <div><label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                                <input v-model="formUser.email" type="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Senha *</label>
+                                    <input v-model="formUser.password" type="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Telefone *</label>
+                                    <input v-model="formUser.phone" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                                </div>
+                                <div><label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Conta</label>
+                                <select v-model="formUser.account_type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <option value="cliente">Cliente</option><option value="loja">Loja Parceira</option>
+                                </select></div>
+                                <div class="pt-4 flex justify-end gap-3">
+                                    <button type="button" @click="closeModal" class="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Cancelar</button>
+                                    <button type="submit" class="px-5 py-2.5 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium shadow-sm transition-colors">Salvar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
 
     <script>
         const { createApp } = Vue;
-        const API_URL = 'http://localhost:8000'; // URL base do seu servidor FastAPI
+        const API_URL = 'http://localhost:8001'; // Ajustado para a porta 8001 onde sua API está rodando
 
         createApp({
             data() {
                 return {
+                    isLoggedIn: !!localStorage.getItem('shophub_token'),
+                    loginForm: { email: '', password: '' },
                     currentTab: 'products',
                     products: [],
                     users: [],
@@ -239,96 +257,97 @@
                     notification: '',
                     searchQuery: '',
                     selectedCategory: 'Todas',
-                    formProduct: {
-                        name: '', price: 0, category: '', description: '', stock_quantity: 0
-                    },
-                    formUser: {
-                        full_name: '', email: '', password: '', phone: '', account_type: 'cliente'
-                    }
+                    formProduct: { name: '', price: 0, category: '', description: '', stock_quantity: 0 },
+                    formUser: { full_name: '', email: '', password: '', phone: '', account_type: 'cliente' }
                 }
             },
             computed: {
-                // Gera a lista de categorias únicas baseadas nos produtos disponíveis
                 uniqueCategories() {
                     const categories = this.products.map(p => p.category);
                     return ['Todas', ...new Set(categories)];
                 },
-                // Filtra os produtos baseados na busca textual e na categoria selecionada
                 filteredProducts() {
                     return this.products.filter(product => {
                         const searchLower = this.searchQuery.toLowerCase();
-                        const matchesSearch = product.name.toLowerCase().includes(searchLower) ||
-                                              (product.description && product.description.toLowerCase().includes(searchLower));
+                        const matchesSearch = product.name.toLowerCase().includes(searchLower);
                         const matchesCategory = this.selectedCategory === 'Todas' || product.category === this.selectedCategory;
-
                         return matchesSearch && matchesCategory;
                     });
                 }
             },
             mounted() {
-                this.fetchProducts();
-                this.fetchUsers();
-                // Inicializa os ícones do Lucide
+                if(this.isLoggedIn) {
+                    this.fetchProducts();
+                    this.fetchUsers();
+                }
                 this.renderIcons();
             },
             updated() {
-                // Garante que os ícones se mantenham após as atualizações de DOM (ex: ao filtrar listas)
                 this.renderIcons();
-            },
-            watch: {
-                currentTab() {
-                    // Reseta os filtros ao mudar de aba
-                    if(this.currentTab === 'products') {
-                        this.searchQuery = '';
-                        this.selectedCategory = 'Todas';
-                    }
-                }
             },
             methods: {
                 renderIcons() {
-                    setTimeout(() => {
-                        if (typeof lucide !== 'undefined') {
-                            lucide.createIcons();
-                        }
-                    }, 50);
+                    setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
                 },
                 showNotify(msg) {
                     this.notification = msg;
                     setTimeout(() => { this.notification = ''; }, 3000);
                 },
-                openModal() {
-                    this.isModalOpen = true;
-                },
-                closeModal() {
-                    this.isModalOpen = false;
-                    this.resetForms();
-                },
+                openModal() { this.isModalOpen = true; },
+                closeModal() { this.isModalOpen = false; this.resetForms(); },
                 resetForms() {
                     this.formProduct = { name: '', price: 0, category: '', description: '', stock_quantity: 0 };
                     this.formUser = { full_name: '', email: '', password: '', phone: '', account_type: 'cliente' };
                 },
-                // API Calls para Produtos
+                getHeaders() {
+                    return {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('shophub_token')}`
+                    };
+                },
+                async login() {
+                    try {
+                        const formData = new URLSearchParams();
+                        formData.append('username', this.loginForm.email);
+                        formData.append('password', this.loginForm.password);
+
+                        const res = await fetch(`${API_URL}/users/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: formData
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            localStorage.setItem('shophub_token', data.access_token);
+                            this.isLoggedIn = true;
+                            this.fetchProducts();
+                            this.fetchUsers();
+                            this.showNotify('Acesso Administrativo Liberado!');
+                        } else {
+                            alert("Credenciais Inválidas. Lembre-se, a senha de adm é Adm@1");
+                        }
+                    } catch (e) { console.error(e); }
+                },
+                logout() {
+                    localStorage.removeItem('shophub_token');
+                    this.isLoggedIn = false;
+                },
                 async fetchProducts() {
                     try {
-                        const res = await fetch(`${API_URL}/products/`);
-                        if(res.ok) {
-                            this.products = await res.json();
-                            // Se a categoria selecionada for removida do BD, volta para "Todas"
-                            if (this.selectedCategory !== 'Todas' && !this.uniqueCategories.includes(this.selectedCategory)) {
-                                this.selectedCategory = 'Todas';
-                            }
-                        }
-                    } catch (e) {
-                        console.error("Certifique-se que o backend FastAPI está rodando.", e);
-                    }
+                        const res = await fetch(`${API_URL}/products/`, { headers: this.getHeaders() });
+                        if(res.status === 401) this.logout();
+                        if(res.ok) this.products = await res.json();
+                    } catch (e) { console.error(e); }
                 },
                 async submitProduct() {
                     try {
                         const res = await fetch(`${API_URL}/products/`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: this.getHeaders(),
                             body: JSON.stringify(this.formProduct)
                         });
+                        if(res.status === 401) return this.logout();
                         if (res.ok) {
                             this.showNotify('Produto adicionado com sucesso!');
                             this.fetchProducts();
@@ -337,19 +356,23 @@
                     } catch (e) { console.error(e); }
                 },
                 async deleteProduct(id) {
-                    if(!confirm('Tem certeza que deseja excluir este produto?')) return;
+                    if(!confirm('Excluir este produto?')) return;
                     try {
-                        const res = await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
+                        const res = await fetch(`${API_URL}/products/${id}`, { 
+                            method: 'DELETE',
+                            headers: this.getHeaders()
+                        });
+                        if(res.status === 401) return this.logout();
                         if (res.ok) {
                             this.showNotify('Produto excluído!');
                             this.fetchProducts();
                         }
                     } catch (e) { console.error(e); }
                 },
-                // API Calls para Usuários
                 async fetchUsers() {
                     try {
-                        const res = await fetch(`${API_URL}/users/`);
+                        const res = await fetch(`${API_URL}/users/`, { headers: this.getHeaders() });
+                        if(res.status === 401) this.logout();
                         if(res.ok) this.users = await res.json();
                     } catch (e) { console.error(e); }
                 },
@@ -357,12 +380,12 @@
                     try {
                         const res = await fetch(`${API_URL}/users/`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: this.getHeaders(),
                             body: JSON.stringify(this.formUser)
                         });
-
+                        if(res.status === 401) return this.logout();
                         if (res.ok) {
-                            this.showNotify('Usuário registrado com sucesso!');
+                            this.showNotify('Usuário registrado!');
                             this.fetchUsers();
                             this.closeModal();
                         } else {

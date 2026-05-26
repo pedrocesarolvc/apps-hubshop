@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+
 from app.banco import get_db
 from app.core.deps import get_current_user
 from app.schemas.product import ProductCreate, ProductResponse, ProductSpecBase, ProductSpecResponse
 from app.crud import product as crud_product
-from app.modelos.user import UserModel
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
 @router.post("/", response_model=ProductResponse)
-def create_product(product: ProductCreate, db: Session = Depends(get_db), usuario_logado: UserModel = Depends(get_current_user)):
+def create_product(product: ProductCreate, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     return crud_product.create_product(db=db, product=product)
 
 @router.get("/", response_model=List[ProductResponse])
@@ -25,7 +25,7 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     return product
 
 @router.delete("/{product_id}")
-def delete_product(product_id: int, db: Session = Depends(get_db)):
+def delete_product(product_id: int, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     product = crud_product.get_product(db, product_id=product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
@@ -33,7 +33,7 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     return {"message": "Produto deletado com sucesso. Especificações também foram deletadas via CASCADE."}
 
 @router.post("/{product_id}/specs/", response_model=ProductSpecResponse)
-def create_product_spec(product_id: int, spec: ProductSpecBase, db: Session = Depends(get_db)):
+def create_product_spec(product_id: int, spec: ProductSpecBase, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     product = crud_product.get_product(db, product_id=product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
