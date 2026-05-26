@@ -5,7 +5,7 @@ from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from pydantic import BaseModel
-from core.database import Session
+from app.banco import Session
 from core.auth import oauth2_schema
 from core.config import settings
 from modelos.user import UserModel
