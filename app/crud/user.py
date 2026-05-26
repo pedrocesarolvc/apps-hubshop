@@ -9,12 +9,15 @@ def get_user_by_email(db: Session, email: str):
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(UserModel).offset(skip).limit(limit).all()
 
+def get_user(db: Session, user_id: int):
+    return db.query(UserModel).filter(UserModel.user_id == user_id).first()
+
 def create_user(db: Session, user: UserCreate):
     senha_criptografada = gerar_hash_senha(user.password)
     new_user = UserModel(
         full_name=user.full_name,
         email=user.email,
-        hashed_password=senha_criptografada,
+        password_hash=senha_criptografada,
         phone=user.phone,
         address=user.address,
         account_type=user.account_type,
