@@ -2,30 +2,21 @@
 from typing import Generator, Optional
 from fastapi import Depends, HTTPException, status
 from jose import jwt, JWTError
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from app.banco import Session
-from core.auth import oauth2_schema
-from core.config import settings
-from modelos.user import UserModel
+
+from app.banco import get_db
+from app.core.auth import oauth2_schema
+from app.core.config import settings
+from app.modelos.user import UserModel
 
 
 class TokenData(BaseModel):
     username: Optional[str] = None
 
 
-async def get_session() -> Generator:
-    session: AsyncSession = Session()
-
-    try:
-        yield session
-    finally:
-        await session.close()
-
-
-async def get_current_user(db: Session = Depends(get_session), token: str = Depends(oauth2_schema)) -> UserModel:
-    credential_exception: HTTPException = HTTPException(
+def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_schema)) -> UserModel:
+    credential_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail='Não foi possível autenticar a credencial',
         headers={"WWW-Authenticate": "Bearer"},
@@ -43,17 +34,13 @@ async def get_current_user(db: Session = Depends(get_session), token: str = Depe
         if username is None:
             raise credential_exception
 
-        token_data: TokenData = TokenData(username=username)
+        token_data = TokenData(username=username)
     except JWTError:
         raise credential_exception
 
-    async with db as session:
-        query = select(UserModel).filter(
-            UserModel.id == int(token_data.username))
-        result = await session.execute(query)
-        usuario: UserModel = result.scalars().unique().one_or_none()
+    usuario = db.query(UserModel).filter(UserModel.user_id == int(token_data.username)).first()
 
-        if usuario is None:
-            raise credential_exception
+    if usuario is None:
+        raise credential_exception
 
-        return usuario
+    return usuario

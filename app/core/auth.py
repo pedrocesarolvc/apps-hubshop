@@ -1,35 +1,32 @@
 #geração de tokens
 from pytz import timezone
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from jose import jwt
-from modelos.user import UserModel
-from core.config import settings
-from core.security import verificar_senha
 from pydantic import EmailStr
+
+from app.modelos.user import UserModel
+from app.core.config import settings
+from app.core.security import verificar_senha
 
 
 oauth2_schema = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/usuarios/login"
+    tokenUrl="/users/login"
 )
 
 
-async def autenticar(email: EmailStr, senha: str, db: AsyncSession) -> Optional[UserModel]:
-    async with db as session:
-        query = select(UserModel).filter(UserModel.email == email)
-        result = await session.execute(query)
-        usuario: UserModel = result.scalars().unique().one_or_none()
+def autenticar(email: EmailStr, senha: str, db: Session) -> Optional[UserModel]:
+    usuario = db.query(UserModel).filter(UserModel.email == email).first()
 
-        if not usuario:
-            return None
+    if not usuario:
+        return None
 
-        if not verificar_senha(senha, usuario.senha):
-            return None
+    if not verificar_senha(senha, usuario.password_hash):
+        return None
 
-        return usuario
+    return usuario
 
 
 def _criar_token(tipo_token: str, tempo_vida: timedelta, sub: str) -> str:
@@ -40,11 +37,8 @@ def _criar_token(tipo_token: str, tempo_vida: timedelta, sub: str) -> str:
     expira = datetime.now(tz=sp) + tempo_vida
 
     payload["type"] = tipo_token
-
     payload["exp"] = expira
-
     payload["iat"] = datetime.now(tz=sp)
-
     payload["sub"] = str(sub)
 
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.ALGORITHM)
