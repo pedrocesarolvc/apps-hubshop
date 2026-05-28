@@ -29,7 +29,7 @@ def delete_product(product_id: int, db: Session = Depends(get_db), current_user:
     product = crud_product.get_product(db, product_id=product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
-    crud_product.delete_product(db, product_id=product_id)
+    crud_product.delete_product(db, product)
     return {"message": "Produto deletado com sucesso. Especificações também foram deletadas via CASCADE."}
 
 @router.post("/{product_id}/specs/", response_model=ProductSpecResponse)
